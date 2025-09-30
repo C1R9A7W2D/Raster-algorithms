@@ -17,7 +17,7 @@ class FloodFillApp:
         self.load_button = tk.Button(master, text="Load Image", command=self.load_image)
         self.load_button.pack()
         
-        self.canvas.bind("<Button-1>", self.flood_fill)
+        self.canvas.bind("<Button-1>", self.find_and_draw_boundary)
         
     def load_image(self):
         file_path = filedialog.askopenfilename()
@@ -25,7 +25,7 @@ class FloodFillApp:
             self.image = Image.open(file_path).convert("RGBA")
             self.display_image()
 
-    def flood_fill(self, event):
+    def find_and_draw_boundary(self, event):
         if self.image is not None:
             x, y = event.x, event.y
             target_color = self.image.getpixel((x, y))
