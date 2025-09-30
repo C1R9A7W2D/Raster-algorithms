@@ -15,7 +15,7 @@ class FloodFillApp:
         self.pattern = None
         self.start_x = None
         self.start_y = None
-        self.image = Image.new("RGBA", (500, 500), (255, 255, 255, 255))  # Создаем пустое изображение
+        self.image = Image.new("RGBA", (1500, 1500), (255, 255, 255, 255))
         self.draw = ImageDraw.Draw(self.image)
         self.drawing = False
 
@@ -26,6 +26,8 @@ class FloodFillApp:
         self.canvas.bind("<B1-Motion>", self.draw_area)
         self.canvas.bind("<ButtonRelease-1>", self.end_drawing)
         self.canvas.bind("<Button-3>", self.flood_fill)
+
+        self.visited = [[False for _ in range(1500)] for _ in range(1500)]
         
     def load_image(self):
         file_path = filedialog.askopenfilename()
@@ -39,9 +41,7 @@ class FloodFillApp:
 
     def draw_area(self, event):
         if self.drawing:
-            # Рисуем линию на холсте
             self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill="black", width=2)
-            # Рисуем на изображении
             self.draw.line([self.start_x, self.start_y, event.x, event.y], fill="black", width=2)
             self.start_x = event.x
             self.start_y = event.y
@@ -51,11 +51,12 @@ class FloodFillApp:
 
     def flood_fill(self, event):
         if self.pattern is not None:
-            x, y = event.x, event.y  # Получаем координаты щелчка
+            x, y = event.x, event.y
+            self.start_x, self.start_y = event.x, event.y
             target_color = self.image.getpixel((x, y))
-            self.flood_fill_algorithm_up(x, y, target_color)        #Алгоритм разделён на две части, потому что двусторонний постоянно пересекается сам с собой
-            self.flood_fill_algorithm_down(x, y + 1, target_color)
+            self.flood_fill_algorithm(x, y, target_color)
             self.display_image()
+            self.visited = [[False for _ in range(1500)] for _ in range(1500)]
 
     def find_boundaries(self, x, y, target_color):
         left = x
@@ -69,35 +70,29 @@ class FloodFillApp:
 
         return left, right
 
-    def flood_fill_algorithm_up(self, x, y, target_color):
+    def flood_fill_algorithm(self, x, y, target_color):
         if y < 0 or y >= self.image.height or x < 0 or x >= self.image.width:
             return
         if self.image.getpixel((x, y)) != target_color:
+            return
+        if self.visited[x][y]:
             return
 
         left, right = self.find_boundaries(x, y, target_color)
 
         for j in range(left, right + 1):
-            self.image.paste(self.pattern, (j, y), self.pattern)
+            pattern_x, pattern_y = j - self.start_x, y - self.start_y
+            pattern_x = pattern_x % self.pattern.width
+            pattern_y = pattern_y % self.pattern.height
+            self.image.putpixel((j, y), self.pattern.getpixel((pattern_x, pattern_y)))
+            self.visited[j][y] = True
 
         if y > 0:
             for j in range(left, right + 1):
-                self.flood_fill_algorithm_up(j, y - 1, target_color)
-
-    def flood_fill_algorithm_down(self, x, y, target_color):
-        if y < 0 or y >= self.image.height or x < 0 or x >= self.image.width:
-            return
-        if self.image.getpixel((x, y)) != target_color:
-            return
-
-        left, right = self.find_boundaries(x, y, target_color)
-
-        for j in range(left, right + 1):
-            self.image.paste(self.pattern, (j, y), self.pattern)
-
+                self.flood_fill_algorithm(j, y - 1, target_color)
         if y < self.image.height - 1:
             for j in range(left, right + 1):
-                self.flood_fill_algorithm_down(j, y + 1, target_color)
+                self.flood_fill_algorithm(j, y + 1, target_color)
             
     def display_image(self):
         self.tk_image = ImageTk.PhotoImage(self.image)
