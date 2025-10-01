@@ -1,8 +1,7 @@
 from PIL import Image
-
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk, ImageDraw
+from PIL import Image, ImageTk
 
 class FloodFillApp:
     def __init__(self, master):
@@ -37,25 +36,56 @@ class FloodFillApp:
         width, height = self.image.size
         visited = set()
         boundary_points = []
-        stack = [start_point]
-        prev_dir = 2
+        direction = 0
+        current_point = start_point
+        x, y = current_point
+        
+        while self.image.getpixel((x, y)) == target_color:
+            x += 1
+            
+        current_point = (x, y)
 
-        while stack:
-            x, y = stack.pop()
+        while True:
+            x, y = current_point
             if (x, y) in visited or x < 0 or x >= width or y < 0 or y >= height:
-                continue
+                break
 
             visited.add((x, y))
             current_color = self.image.getpixel((x, y))
 
-            if current_color == target_color:
-                boundary_points.append((x, y))
-                neighbors = [(x + 1, y), (x + 1, y - 1), (x, y - 1), (x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)]
-                for i in range((prev_dir - 2) % 8, (prev_dir - 3) % 8):
-                    if neighbors[i] not in visited:
-                        stack.append(neighbors[i])
+            boundary_points.append((x, y))
 
+            for i in range(8):
+                next_direction = (direction + i) % 8
+                neighbor = self.get_neighbor(current_point, next_direction)
+
+                neighbor_color = self.image.getpixel(neighbor)
+                if neighbor_color != target_color:
+                    current_point = neighbor
+                    direction = (direction + i - 2) % 8
+                    break
+
+        boundary_points.sort(key=lambda point: (point[1], point[0]))
         return boundary_points
+
+    def get_neighbor(self, point, direction):
+        x, y = point
+        if direction == 0:
+            return (x, y + 1)
+        elif direction == 1:
+            return (x + 1, y + 1)
+        elif direction == 2:
+            return (x + 1, y)
+        elif direction == 3:
+            return (x + 1, y - 1)
+        elif direction == 4:
+            return (x, y - 1)
+        elif direction == 5:
+            return (x - 1, y - 1)
+        elif direction == 6:
+            return (x - 1, y)
+        elif direction == 7:
+            return (x - 1, y + 1)
 
     def draw_boundary(self, boundary_points):
         for point in boundary_points:
